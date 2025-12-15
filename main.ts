@@ -1,87 +1,143 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
-
-// Remember to rename these classes and interfaces!
+import { App, Editor, EditorPosition, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { Notice, Plugin, requestUrl } from 'obsidian';
 
 interface MyPluginSettings {
 	mySetting: string;
 }
 
 const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
 }
 
-export default class MyPlugin extends Plugin {
+export default class URLshortener extends Plugin {
 	settings: MyPluginSettings;
 
 	async onload() {
+		// Configure resources needed by the plugin.
+		// runs whenever the user starts using the plugin in Obsidian. 
+		// This is where you'll configure most of the plugin's capabilities.
 		await this.loadSettings();
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (_evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, _view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
+		this.registerEvent(
+			this.app.workspace.on('editor-menu', (menu, editor, view) => {
+				const link = this.getLinkAtPosition(editor);
+				if (link) {
+					menu.addItem((item) =>
+						item
+						.setTitle('Shorten URL')
+						.setIcon('send') 
+						.onClick(() => {
+							this.callApi(link)
+							.then((shortenedUrl) => {
+								new Notice('Shortened URL');
+								if (shortenedUrl) {
+									this.replaceUrlInEditor(shortenedUrl.trim());
+								}
+							})
+						})
+					)
 				}
-			}
-		});
-
+			})
+		);
+	
 		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+		// this.addSettingTab(new SampleSettingTab(this.app, this));
 	}
 
-	onunload() {
+	private getLinkAtPosition(editor: Editor): string | null {
+		const cursor = editor.getCursor();
+		const line = editor.getLine(cursor.line);
+		const token = editor.getClickableTokenAt(cursor);
 
+		// If Obsidian detects a clickable link token
+		if (token && token.type?.includes('url') ) {
+			return token.linktext || token.text || null;
+		}
+
+		// Fallback: simple regex check around cursor (less reliable)
+		const linkRegex = /(https?:\/\/[^\s\)]+|\[\[([^\|\]]+)(?:\|[^\]]+)?\]\])/g;
+		let match;
+		while ((match = linkRegex.exec(line)) !== null) {
+			if (cursor.ch >= match.index && cursor.ch <= match.index + match[0].length) {
+				if (match[0].startsWith('http')) return match[0];
+			}
+		}
+
+		return null;
 	}
 
+	private async callApi(url: string) : Promise<string | null> {
+		try {
+			// Ensure it starts with http/https
+			if (!url.startsWith('http')) {
+				url = 'https://' + longUrl;
+			}
+
+			const encodedUrl = encodeURIComponent(url);
+			const apiUrl = `https://is.gd/create.php?format=simple&url=${encodedUrl}`;
+			const response = await requestUrl(apiUrl);
+			const textToInsert = response.text.trim();
+		
+			if (textToInsert.startsWith('Error:')) {
+				throw new Error(text);
+			}
+			return textToInsert;
+
+		} catch (error) {
+			console.error('Failed to shorten URL:', error);
+			new Notice('URL shortening failed: ' + (error.message || error));
+			return null;
+		}
+	}
+	private replaceUrlInEditor(textToInsert: string) {
+		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+		const editor = activeView.editor;
+		const cursor = editor.getCursor();
+		const linkRange = this.getLinkRangeAtPosition(editor, cursor);
+		if (linkRange) {
+			// Precise replacement of the markdown link
+			editor.replaceRange(textToInsert, linkRange.from, linkRange.to);
+		} else {
+			// Fallback: just replace at cursor (e.g., in Reading mode or if detection failed)
+			editor.replaceRange(textToInsert, cursor);
+		}
+
+		const newCursorPos: CodeMirror.Position = {
+    		line: linkRange.from.line, 
+   			ch: textToInsert.length 
+  		};		
+		editor.setCursor(newCursorPos)
+		editor.focus();
+	}
+	private getLinkRangeAtPosition(
+		editor: CodeMirror.Editor,
+		pos: CodeMirror.Position
+	): { from: CodeMirror.Position; to: CodeMirror.Position } | null {
+		const line = editor.getLine(pos.line);
+
+		// Try clickable token first (most accurate)
+		// @ts-ignore – getClickableTokenAt is undocumented but stable
+		const token = (editor as any).getClickableTokenAt?.(pos);
+		if (token && (token.type?.includes('url') || token.type?.includes('link'))) {
+			// Find the full markdown syntax around it
+			const linkRegex = /(\[([^\]]*)\]\(([^)]+)\)|(https?:\/\/[^\s\)]+)|\[\[([^\|\]]+)(?:\|([^\]]+))?\]\])/;
+			const offset = editor.posToOffset(pos);
+			const lineStartOffset = offset - pos.ch;
+
+			let match;
+			const fullRegex = new RegExp(linkRegex.source, 'g');
+			while ((match = fullRegex.exec(line)) !== null) {
+			const matchStart = lineStartOffset + match.index;
+			const matchEnd = matchStart + match[0].length;
+
+			if (offset >= matchStart && offset <= matchEnd) {
+				const from = editor.offsetToPos(matchStart);
+				const to = editor.offsetToPos(matchEnd);
+				return { from, to };
+			}
+			}
+		}
+	}
+	
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
@@ -91,44 +147,3 @@ export default class MyPlugin extends Plugin {
 	}
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
-
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		const {containerEl} = this;
-
-		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
-	}
-}
