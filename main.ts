@@ -1,20 +1,10 @@
 import { App, Editor, EditorPosition, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { Notice, Plugin, requestUrl } from 'obsidian';
 
-interface MyPluginSettings {
-	mySetting: string;
-}
-
-const DEFAULT_SETTINGS: MyPluginSettings = {
-}
-
 export default class URLshortener extends Plugin {
 	settings: MyPluginSettings;
 
 	async onload() {
-		// Configure resources needed by the plugin.
-		// runs whenever the user starts using the plugin in Obsidian. 
-		// This is where you'll configure most of the plugin's capabilities.
 		await this.loadSettings();
 
 		this.registerEvent(
@@ -38,8 +28,6 @@ export default class URLshortener extends Plugin {
 			})
 		);
 	
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		// this.addSettingTab(new SampleSettingTab(this.app, this));
 	}
 
 	private getLinkAtPosition(editor: Editor): string | null {
@@ -87,6 +75,7 @@ export default class URLshortener extends Plugin {
 			return null;
 		}
 	}
+
 	private replaceUrlInEditor(textToInsert: string) {
 		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 		const editor = activeView.editor;
@@ -107,6 +96,7 @@ export default class URLshortener extends Plugin {
 		editor.setCursor(newCursorPos)
 		editor.focus();
 	}
+
 	private getLinkRangeAtPosition(
 		editor: CodeMirror.Editor,
 		pos: CodeMirror.Position
@@ -137,12 +127,5 @@ export default class URLshortener extends Plugin {
 		}
 	}
 	
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
-
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
 }
 
