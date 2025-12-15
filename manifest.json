@@ -5,6 +5,6 @@
 	"minAppVersion": "0.15.0",
 	"description": "Replace any raw link with url-shortener API's provided link in one click.",
 	"author": "Hux613",
-	"repo": "hux613/Obisidian-Raw-URL-Shortener",
+	"authorUrl": "https://github.com/Hux613",
 	"isDesktopOnly": false
 }
