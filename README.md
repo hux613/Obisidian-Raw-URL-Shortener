@@ -1,6 +1,6 @@
 # Obsidian's Online URL shortener
 
-A simple Obsidian plugin that lets you **right-click any external link** and replace it directly with a shortened version from a public API  
+A simple Obsidian plugin that lets you **right-click any external link** and replace it directly with a shortened version that will work even in Source Mode
 
 ![ezgif-7c0199b8f3f60982](https://github.com/user-attachments/assets/057192af-c93b-4f56-8724-e619afed2e61)  
 Currently used API: [is.gd](https://is.gd)   
