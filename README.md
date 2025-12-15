@@ -9,5 +9,4 @@ Haven not been tested properly on Live Preview and Reading view modes (never nee
 
 If you want to add your preferred API to the plugin ([bit.ly](https://bitly.com), [tinyurl.com](https://tinyurl.com), [rebrandly.com](https://www.rebrandly.com), [short.io](https://short.io), [cutt.ly](https://cutt.ly), [t.ly](https://t.ly), [shrtco.de](https://shrtco.de) ...etc.), feel free to push a PR
 
-https://github.com/user-attachments/assets/c077a516-e07d-4f5f-8220-ff0fd8b5c225
-
+![ezgif-7c0199b8f3f60982](https://github.com/user-attachments/assets/057192af-c93b-4f56-8724-e619afed2e61)
