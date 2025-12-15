@@ -6,7 +6,7 @@ A simple Obsidian plugin that lets you **right-click any external link** and rep
 Currently used API: [is.gd](https://is.gd)
 
 Fully working in Source mode 
-Haven't been tested properly on Live Preview and Reading view modes (I never need it)
+Haven't been tested properly on Live Preview and Reading view modes (never really need it)
 
 If you want to add your preferred API to the plugin ([bit.ly](https://bitly.com), [tinyurl.com](https://tinyurl.com), [rebrandly.com](https://www.rebrandly.com), [short.io](https://short.io), [cutt.ly](https://cutt.ly), [t.ly](https://t.ly), [shrtco.de](https://shrtco.de) ...etc.), feel free to push a PR
 
