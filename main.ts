@@ -24,11 +24,10 @@ export default class URLshortener extends Plugin {
 					menu.addItem((item) =>
 						item
 						.setTitle('Shorten URL')
-						.setIcon('send') 
+						.setIcon('links-coming-in') 
 						.onClick(() => {
 							this.callApi(link)
 							.then((shortenedUrl) => {
-								new Notice('Shortened URL');
 								if (shortenedUrl) {
 									this.replaceUrlInEditor(shortenedUrl.trim());
 								}
